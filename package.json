@@ -1,0 +1,19 @@
+{
+  "name": "stock-streaming-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@alpacahq/alpaca-trade-api": "^1.4.2",
+    "express": "^4.21.0",
+    "http": "^0.0.1-security",
+    "socket.io": "^4.7.5",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Stock Data</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    #stockData p {
+      margin: 5px 0;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Real-Time Stock Data</h1>
+
+  <label for="stockSymbol">Enter stock symbol (e.g., AAPL): </label>
+  <input type="text" id="stockSymbol" placeholder="AAPL">
+  <button onclick="subscribe()">Subscribe</button>
+
+  <div id="error" class="error"></div>
+  <div id="stockData"></div>
+
+  <script>
+    const socket = io();
+
+    // Function to subscribe to a stock symbol
+    function subscribe() {
+      const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+      const errorDiv = document.getElementById('error');
+      const stockDataDiv = document.getElementById('stockData');
+
+      if (symbol === '') {
+        errorDiv.innerText = 'Please enter a valid stock symbol.';
+        stockDataDiv.innerHTML = '';  // Clear previous stock data
+        return;
+      }
+
+      errorDiv.innerText = '';  // Clear error message
+      socket.emit('subscribeToStock', symbol);  // Send the stock symbol to the server
+    }
+
+    // Listening for stock data updates from the server
+    socket.on('stockUpdate', (trade) => {
+      const stockDataDiv = document.getElementById('stockData');
+      stockDataDiv.innerHTML = `
+        <p>Symbol: ${trade[0].S}</p>
+        <p>Price: $${trade[0].p.toFixed(2)}</p>
+        <p>Volume: ${trade[0].s}</p>
+        <hr>
+      `;
+    });
+
+    // Error handling from the server-side if needed
+    socket.on('errorMessage', (message) => {
+      const errorDiv = document.getElementById('error');
+      errorDiv.innerText = message;
+    });
+  </script>
+</body>
+</html>
