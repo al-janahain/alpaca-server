@@ -62,6 +62,7 @@ function streamStockData(symbol, clientSocket) {
         console.log(`Trade update for ${symbol}: ${JSON.stringify(parsedData)}`);
         clientSocket.emit('stockUpdate', parsedData);
       }
+    //   clientSocket.emit('stockUpdate', parsedData);
     });
 
     alpacaSocket.on('error', (error) => {
