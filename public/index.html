@@ -54,7 +54,7 @@
     // Listening for stock data updates from the server
     socket.on('stockUpdate', (trade) => {
       const stockDataDiv = document.getElementById('stockData');
-      console.log(trade);
+    //   console.log(trade);
       stockDataDiv.innerHTML = `
         <p>Symbol: ${trade[0].S}</p>
         <p>Price: $${trade[0].p.toFixed(2)}</p>

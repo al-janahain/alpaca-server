@@ -5,9 +5,9 @@ const WebSocket = require('ws');
 const Alpaca = require('@alpacahq/alpaca-trade-api');
 
 // Alpaca API credentials
-const API_KEY = 'PK1QKVHIRD1MM3QTSNU0';
-const API_SECRET = '8mnev3rNZc9bEx7H4dJZGN08IdHGI4iBx3ag2S8h';
-const PAPER_TRADING = true; 
+const API_KEY = 'PKNW882FKKJQKBITVJ8D';
+const API_SECRET = 'TczzaBOZe8ChtSzjwErasaa1GU1lcKstMigbaBif';
+const PAPER_TRADING = true;
 
 const alpaca = new Alpaca({
   keyId: API_KEY,
@@ -21,23 +21,30 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 let alpacaSocket;  // Maintain a single WebSocket connection
+let clients = [];  // Array to store connected clients
 
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log('New client connected');
+  
+  // Add the new client to the clients array
+  clients.push(socket);
 
   socket.on('subscribeToStock', (symbol) => {
     console.log(`Client subscribed to stock: ${symbol}`);
-    streamStockData(symbol, socket);
+    streamStockData(symbol);
   });
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
+    
+    // Remove the disconnected client from the clients array
+    clients = clients.filter(client => client !== socket);
   });
 });
 
-function streamStockData(symbol, clientSocket) {
+function streamStockData(symbol) {
   const alpacaWsUrl = 'wss://stream.data.alpaca.markets/v2/iex';
 
   if (!alpacaSocket) {
@@ -53,16 +60,22 @@ function streamStockData(symbol, clientSocket) {
       };
 
       alpacaSocket.send(JSON.stringify(authMessage));
+
+      const subscribeMessage = {
+        action: 'subscribe',
+        trades: [symbol]
+      };
+
+      alpacaSocket.send(JSON.stringify(subscribeMessage));
     });
 
     alpacaSocket.on('message', (data) => {
       const parsedData = JSON.parse(data);
-        console.log(parsedData);
-      if (parsedData && parsedData[0] && parsedData[0].T === 't' && parsedData[0].S === symbol) {
-        console.log(`Trade update for ${symbol}: ${JSON.stringify(parsedData)}`);
+
+      // Emit the data to all connected clients
+      clients.forEach(clientSocket => {
         clientSocket.emit('stockUpdate', parsedData);
-      }
-    //   clientSocket.emit('stockUpdate', parsedData);
+      });
     });
 
     alpacaSocket.on('error', (error) => {
