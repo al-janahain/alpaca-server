@@ -13,9 +13,10 @@
     h1 {
       color: #333;
     }
-    #stockData p {
-      margin: 5px 0;
-      font-weight: bold;
+    #stockData div {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
     }
     .error {
       color: red;
@@ -25,8 +26,8 @@
 <body>
   <h1>Real-Time Stock Data</h1>
 
-  <label for="stockSymbol">Enter stock symbol (e.g., AAPL): </label>
-  <input type="text" id="stockSymbol" placeholder="AAPL">
+  <label for="stockSymbols">Enter stock symbols (comma-separated): </label>
+  <input type="text" id="stockSymbols" placeholder="AAPL, GOOGL, MSFT">
   <button onclick="subscribe()">Subscribe</button>
 
   <div id="error" class="error"></div>
@@ -34,33 +35,59 @@
 
   <script>
     const socket = io();
+    const stockDataDiv = document.getElementById('stockData');
 
-    // Function to subscribe to a stock symbol
+    // Function to subscribe to multiple stock symbols
     function subscribe() {
-      const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+      const symbolsInput = document.getElementById('stockSymbols').value.trim().toUpperCase();
       const errorDiv = document.getElementById('error');
-      const stockDataDiv = document.getElementById('stockData');
 
-      if (symbol === '') {
-        errorDiv.innerText = 'Please enter a valid stock symbol.';
+      if (symbolsInput === '') {
+        errorDiv.innerText = 'Please enter valid stock symbols.';
         stockDataDiv.innerHTML = '';  // Clear previous stock data
         return;
       }
 
+      // Split the input by commas and trim extra spaces
+      const symbols = symbolsInput.split(',').map(symbol => symbol.trim());
+
+      // Check if symbols array is valid
+      if (symbols.length === 0) {
+        errorDiv.innerText = 'Please enter at least one valid stock symbol.';
+        return;
+      }
+
       errorDiv.innerText = '';  // Clear error message
-      socket.emit('subscribeToStock', symbol);  // Send the stock symbol to the server
+      socket.emit('subscribeToStocks', symbols);  // Send the array of stock symbols to the server
+
+      // Initialize or clear existing stock data divs for each symbol
+      symbols.forEach(symbol => {
+        // Check if a div for this symbol already exists
+        let stockDiv = document.getElementById(`stock-${symbol}`);
+        if (!stockDiv) {
+          stockDiv = document.createElement('div');
+          stockDiv.id = `stock-${symbol}`;
+          stockDiv.innerHTML = `<h2>${symbol}</h2><p>Loading...</p>`;
+          stockDataDiv.appendChild(stockDiv);
+        }
+      });
     }
 
     // Listening for stock data updates from the server
     socket.on('stockUpdate', (trade) => {
-      const stockDataDiv = document.getElementById('stockData');
-    //   console.log(trade);
-      stockDataDiv.innerHTML = `
-        <p>Symbol: ${trade[0].S}</p>
-        <p>Price: $${trade[0].p.toFixed(2)}</p>
-        <p>Volume: ${trade[0].s}</p>
-        <hr>
-      `;
+      const symbol = trade[0].S;
+      const price = trade[0].p.toFixed(2);
+      const volume = trade[0].s;
+
+      // Find the corresponding stock div and update its content
+      const stockDiv = document.getElementById(`stock-${symbol}`);
+      if (stockDiv) {
+        stockDiv.innerHTML = `
+          <h2>${symbol}</h2>
+          <p>Price: $${price}</p>
+          <p>Volume: ${volume}</p>
+        `;
+      }
     });
 
     // Error handling from the server-side if needed

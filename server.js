@@ -20,26 +20,28 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-let alpacaSocket;  // Maintain a single WebSocket connection
-let clients = [];  // Array to store connected clients
+let alpacaSocket;
+let clients = [];
 
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log('New client connected');
   
-  // Add the new client to the clients array
   clients.push(socket);
 
-  socket.on('subscribeToStock', (symbol) => {
-    console.log(`Client subscribed to stock: ${symbol}`);
-    streamStockData(symbol);
+  // Handle subscription to multiple stocks
+  socket.on('subscribeToStocks', (symbols) => {
+    console.log(`Client subscribed to stocks: ${symbols}`);
+    
+    // Subscribe to each stock in the array
+    symbols.forEach(symbol => {
+      streamStockData(symbol);
+    });
   });
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
-    
-    // Remove the disconnected client from the clients array
     clients = clients.filter(client => client !== socket);
   });
 });
@@ -59,8 +61,10 @@ function streamStockData(symbol) {
         secret: API_SECRET
       };
 
+      // Authenticate with Alpaca WebSocket
       alpacaSocket.send(JSON.stringify(authMessage));
 
+      // After authenticating, subscribe to the stock symbol
       const subscribeMessage = {
         action: 'subscribe',
         trades: [symbol]
@@ -71,7 +75,7 @@ function streamStockData(symbol) {
 
     alpacaSocket.on('message', (data) => {
       const parsedData = JSON.parse(data);
-
+      console.log(parsedData);
       // Emit the data to all connected clients
       clients.forEach(clientSocket => {
         clientSocket.emit('stockUpdate', parsedData);
@@ -86,14 +90,19 @@ function streamStockData(symbol) {
       console.log('Disconnected from Alpaca WebSocket');
       alpacaSocket = null;
     });
-  } else {
+  } else if (alpacaSocket.readyState === WebSocket.OPEN) {
+    // If the WebSocket is already open, send the subscribe message immediately
     const subscribeMessage = {
       action: 'subscribe',
       trades: [symbol]
     };
     alpacaSocket.send(JSON.stringify(subscribeMessage));
+  } else {
+    // Handle cases where WebSocket is not ready or is closing
+    console.error('WebSocket is not open or is in the process of connecting/closing.');
   }
 }
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
