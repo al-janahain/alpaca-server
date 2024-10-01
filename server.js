@@ -3,6 +3,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const WebSocket = require('ws');
 const Alpaca = require('@alpacahq/alpaca-trade-api');
+const cors = require('cors');  // Add this line
+
 
 // Alpaca API credentials
 const API_KEY = 'PKNW882FKKJQKBITVJ8D';
@@ -22,6 +24,7 @@ const io = socketIo(server);
 
 let alpacaSocket;
 let clients = [];
+app.use(cors());  // Add this line
 
 app.use(express.static('public'));
 
