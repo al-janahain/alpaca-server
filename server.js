@@ -1,9 +1,9 @@
 const express = require('express');
+const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const WebSocket = require('ws');
 const Alpaca = require('@alpacahq/alpaca-trade-api');
-const cors = require('cors');  // Add this line
 
 
 // Alpaca API credentials
@@ -20,11 +20,18 @@ const alpaca = new Alpaca({
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+app.use(cors());
+
+const io = socketIo(server, {
+  cors: {
+    origin: "*", // Allow all origins
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 let alpacaSocket;
 let clients = [];
-app.use(cors());  // Add this line
 
 app.use(express.static('public'));
 
