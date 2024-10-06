@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Real-Time Stock Data</title>
+  <!-- <script src="/socket.io/socket.io.js"></script> -->
   <script src="/socket.io/socket.io.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -24,6 +26,9 @@
   </style>
 </head>
 <body>
+  <h1>Stock Market Status</h1>
+  <div id="status"></div>
+
   <h1>Real-Time Stock Data</h1>
 
   <label for="stockSymbols">Enter stock symbols (comma-separated): </label>
@@ -34,6 +39,7 @@
   <div id="stockData"></div>
 
   <script>
+    // const socket = io();
     const socket = io();
     const stockDataDiv = document.getElementById('stockData');
 
@@ -88,6 +94,13 @@
           <p>Volume: ${volume}</p>
         `;
       }
+    });
+
+    // Listen for market status updates
+    socket.on('marketStatusUpdate', (data) => {
+      const statusElement = document.getElementById('status');
+      statusElement.innerText = data.message;
+      console.log(data.message);
     });
 
     // Error handling from the server-side if needed

@@ -6,10 +6,13 @@ const WebSocket = require('ws');
 const Alpaca = require('@alpacahq/alpaca-trade-api');
 
 
-// Alpaca API credentials
-const API_KEY = 'PKNW882FKKJQKBITVJ8D';
-const API_SECRET = 'TczzaBOZe8ChtSzjwErasaa1GU1lcKstMigbaBif';
-const PAPER_TRADING = true;
+require('dotenv').config();
+
+// Alpaca API credentials from environment variables
+const API_KEY = process.env.API_KEY;
+const API_SECRET = process.env.API_SECRET;
+const PAPER_TRADING = process.env.PAPER_TRADING === 'true'; // Convert string to boolean
+
 
 const alpaca = new Alpaca({
   keyId: API_KEY,
@@ -32,12 +35,52 @@ const io = socketIo(server, {
 
 let alpacaSocket;
 let clients = [];
+let lastMarketStatus = 'closed'; // To track the last market status
 
 app.use(express.static('public'));
+
+
+function isStockMarketOpen() {
+  const now = new Date();
+  const day = now.getDay(); // Get the current day (0 is Sunday, 6 is Saturday)
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+
+  // Stock market is open from Monday to Friday, 9:30 AM to 4:00 PM
+  const marketOpenTime = { hour: 9, minute: 30 };
+  const marketCloseTime = { hour: 16, minute: 0 };
+
+  const isWeekend = day === 0 || day === 6; // Sunday or Saturday
+  const isBeforeOpen = hours < marketOpenTime.hour || (hours === marketOpenTime.hour && minutes < marketOpenTime.minute);
+  const isAfterClose = hours > marketCloseTime.hour || (hours === marketCloseTime.hour && minutes >= marketCloseTime.minute);
+
+  if (isWeekend || isBeforeOpen || isAfterClose) {
+    return 'closed'; 
+  } else {
+    return 'open';
+  }
+}
+
+setInterval(() => {
+  const currentMarketStatus = isStockMarketOpen();
+  console.log('Checking market status...');
+
+  if (lastMarketStatus === 'closed' && currentMarketStatus === 'open') {
+    console.log('Market just opened!');
+
+    io.emit('marketStatusUpdate', { status: 'open', message: 'The stock market is now open!' });
+  }
+  
+  lastMarketStatus = currentMarketStatus;
+}, 60000);
+
 
 io.on('connection', (socket) => {
   console.log('New client connected');
   
+  const marketStatus = isStockMarketOpen();
+  socket.emit('marketStatusUpdate', { status: marketStatus, message: `The stock market is currently ${marketStatus}.` });
+
   clients.push(socket);
 
   // Handle subscription to multiple stocks
